@@ -7,6 +7,7 @@ require('dotenv').config();
 
 const User = require('./models/User'); // Ensure this path matches your project structure
 const BusLocation = require('./models/BusLocation'); // Adjust path as necessary
+const Driver = require('./models/Driver');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -30,6 +31,37 @@ app.post('/api/register', async (req, res) => {
         res.status(500).send(error.message);
     }
 });
+
+//Add Driver
+app.post('/api/register1', async (req, res) => {
+    const { email, password, name, passcode } = req.body;
+    try {
+        // Check if the email already exists
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.status(400).send('Email already in use.');
+        }
+
+     
+
+        // Create and save the new user
+        const user = new User({
+            email,
+            password,
+            name,
+            passcode,
+            // No role or differentiation
+        });
+
+        await user.save();
+
+        res.status(201).send('Registration successful.');
+    } catch (error) {
+        console.error('Error during registration:', error);
+        res.status(500).send(error.message);
+    }
+});
+
 
 // Login endpoint
 app.post('/api/login', async (req, res) => {
