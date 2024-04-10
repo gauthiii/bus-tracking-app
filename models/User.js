@@ -3,7 +3,9 @@ const bcrypt = require('bcrypt');
 
 const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
-  password: { type: String, required: true }
+  password: { type: String, required: true },
+  name: String, // Add a name field
+  passcode: { type: String, minlength: 6, maxlength: 6 } // Add a passcode field with length validation
 });
 
 // Pre-save hook to hash password before saving a new user
