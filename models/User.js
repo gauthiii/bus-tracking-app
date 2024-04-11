@@ -5,6 +5,7 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   name: String, // Add a name field
+  role: String,
   passcode: { type: String, minlength: 6, maxlength: 6 } // Add a passcode field with length validation
 });
 

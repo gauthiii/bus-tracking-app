@@ -20,11 +20,42 @@ mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTop
 app.use(cors());
 app.use(express.json());
 
+//driver check in
+app.post('/api/driver/check-in', async (req, res) => {
+    const { email, passcode, busName, lat, lon } = req.body;
+
+    try {
+        // Verify the driver's passcode and email
+        const driver = await User.findOne({ email, passcode, role: "driver" });
+        if (!driver) {
+            return res.status(401).send('Invalid credentials or not authorized as a driver.');
+        }
+
+        // Find the bus by name in BusLocation
+        const bus = await BusLocation.findOne({ name: busName });
+        if (!bus) {
+            return res.status(404).send('Bus not found.');
+        }
+
+        // Update the bus location with the provided coordinates
+        bus.lat = lat;
+        bus.lon = lon;
+        bus.status = "Driver is Live"
+        await bus.save();
+
+        res.send('Bus location updated successfully.');
+    } catch (error) {
+        console.error('Error during driver check-in:', error);
+        res.status(500).send('Failed to check in.');
+    }
+});
+
+
 // Registration endpoint
 app.post('/api/register', async (req, res) => {
     try {
         const { email, password } = req.body;
-        const user = new User({ email, password });
+        const user = new User({ email, password, role:"user" });
         await user.save();
         res.status(201).send('User created');
     } catch (error) {
@@ -49,6 +80,7 @@ app.post('/api/register1', async (req, res) => {
             email,
             password,
             name,
+            role:"driver",
             passcode,
             // No role or differentiation
         });
@@ -66,25 +98,31 @@ app.post('/api/register1', async (req, res) => {
 // Login endpoint
 app.post('/api/login', async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { email, password, userType } = req.body; // Assume userType is sent in the request body
         const user = await User.findOne({ email });
 
-        if (!user || !(await user.isValidPassword(password))) {
-            return res.status(401).send('Invalid email or password');
+        if (!user) {
+            return res.status(401).send('User not found');
         }
 
-        // Check if the user has a name and passcode set
-        if (!user.name || !user.passcode) {
-            // Respond with a special status to indicate additional info is needed
-            return res.status(202).send({ message: "Additional information required", userId: user._id });
+        if (!(await user.isValidPassword(password))) {
+            return res.status(401).send('Invalid password');
         }
 
+        // Now check if the userType matches the user's role in the database
+        if (user.role !== userType) {
+            return res.status(403).send(`Access Denied: User is not a ${userType}`);
+        }
+
+        // If userType matches, proceed with generating the token
         const token = jwt.sign({ userId: user._id }, process.env.TOKEN_SECRET, { expiresIn: '2h' });
         res.json({ token });
     } catch (error) {
-        res.status(500).send(error.message);
+        console.log(error);
+        res.status(500).send('Internal Server Error');
     }
 });
+
 
 // Get Profile
 app.get('/api/profile', async (req, res) => {
@@ -123,6 +161,7 @@ app.post('/api/set-details', async (req, res) => {
 
         user.name = name;
         user.passcode = passcode;
+        user.role = "user"
         await user.save();
 
         res.status(200).send({ message: "User updated successfully" });
