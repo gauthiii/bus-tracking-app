@@ -206,5 +206,46 @@ app.post('/api/bus-locations', async (req, res) => {
   }
 });
 
+// GET endpoint to fetch all users
+app.get('/api/users', async (req, res) => {
+    try {
+        const users = await User.find({});
+        res.json(users);
+    } catch (error) {
+        console.error('Error fetching users:', error);
+        res.status(500).send('Failed to fetch users');
+    }
+});
+
+// DELETE endpoint to delete a user by ID
+app.delete('/api/users/:id', async (req, res) => {
+    try {
+        const deletedUser = await User.findByIdAndDelete(req.params.id);
+        if (!deletedUser) {
+            return res.status(404).send('User not found');
+        }
+        res.send({ message: 'User deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        res.status(500).send('Failed to delete user');
+    }
+});
+
+// DELETE endpoint to delete a bus location by ID
+app.delete('/api/bus-locations/:id', async (req, res) => {
+    try {
+        // Find and delete the bus using the string ID field 'id', not MongoDB's '_id'
+        const deletedBus = await BusLocation.findOneAndDelete({ id: req.params.id });
+        if (!deletedBus) {
+            return res.status(404).send('Bus not found');
+        }
+        res.send({ message: 'Bus deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting bus:', error);
+        res.status(500).send('Failed to delete bus');
+    }
+});
+
+
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
