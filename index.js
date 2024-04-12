@@ -22,7 +22,7 @@ app.use(express.json());
 
 //driver check in
 app.post('/api/driver/check-in', async (req, res) => {
-    const { email, passcode, busName, lat, lon } = req.body;
+    const { email, passcode, busName, lat, lon,address } = req.body;
 
     try {
         // Verify the driver's passcode and email
@@ -40,7 +40,7 @@ app.post('/api/driver/check-in', async (req, res) => {
         // Update the bus location with the provided coordinates
         bus.lat = lat;
         bus.lon = lon;
-        bus.status = "Driver is Live"
+        bus.status = address;
         await bus.save();
 
         res.send('Bus location updated successfully.');
