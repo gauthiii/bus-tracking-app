@@ -177,7 +177,7 @@ app.get('/api/bus-locations', async (req, res) => {
       let busLocations = await BusLocation.find({});
 
       // Append dummy data to the actual data
-      const dummyData = [{ id: 'VB01', lat: 13.038321, lon: 80.213593, name: '24X', route: 'Koyambedu', status: 'Vadapalani' }];
+      const dummyData = [{ id: 'VB01', lat: 13.038321, lon: 80.213593, name: '24X', route: 'Koyambedu', status: 'Vadapalani',routes:[] }];
       busLocations = busLocations.concat(dummyData);
 
       res.json(busLocations);
