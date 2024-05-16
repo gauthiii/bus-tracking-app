@@ -10,7 +10,7 @@ const BusLocation = require('./models/BusLocation'); // Adjust path as necessary
 const Driver = require('./models/Driver');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
