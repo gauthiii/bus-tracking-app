@@ -206,6 +206,25 @@ app.post('/api/bus-locations', async (req, res) => {
   }
 });
 
+// PUT endpoint to update a bus location by custom ID
+app.put('/api/bus-locations/:id', async (req, res) => {
+    const { id } = req.params;
+    const { routes } = req.body;
+
+    try {
+        const bus = await BusLocation.findOneAndUpdate({ id: id }, { routes }, { new: true });
+        if (!bus) {
+            return res.status(404).send('Bus not found');
+        }
+        res.json(bus);
+    } catch (error) {
+        console.error('Error updating bus:', error);
+        res.status(500).send('Failed to update bus');
+    }
+});
+
+
+
 // GET endpoint to fetch all users
 app.get('/api/users', async (req, res) => {
     try {
