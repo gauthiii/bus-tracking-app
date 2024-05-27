@@ -38,43 +38,49 @@ app.get('/api/users/details', async (req, res) => {
 
 //driver check in
 app.post('/api/driver/check-in', async (req, res) => {
-    const { email, passcode, busName, lat, lon,address,active,stops } = req.body;
+    const { email, passcode, busName, lat, lon, address, active, stops } = req.body;
 
     try {
-        // Verify the driver's passcode and email
-        const driver = await User.findOne({ email, passcode, role: "driver" });
-        if (!driver && active==true) {
-            return res.status(401).send('Invalid credentials or not authorized as a driver.');
+        // Verify the driver's passcode, email, and role only if going live
+        if (active) {
+            const driver = await User.findOne({ email, passcode, role: "driver" });
+            if (!driver) {
+                return res.status(401).send('Invalid credentials or not authorized as a driver.');
+            }
         }
 
-        // Find the bus by name in BusLocation
+        // Find the bus by name
         const bus = await BusLocation.findOne({ name: busName });
         if (!bus) {
             return res.status(404).send('Bus not found.');
         }
 
-        if(active==true && parseInt(stops)>bus.routes.length){
-            return res.status(404).send('Stops exceeding the route length');
+        // Handle going live
+        if (active) {
+            if (parseInt(stops) > bus.routes.length) {
+                return res.status(400).send('Stops exceeding the route length.');
+            }
+
+            bus.lat = lat;
+            bus.lon = lon;
+            bus.driver = email; // Assign the driver
+            bus.stopsCompleted = parseInt(stops);
+            bus.status = address || "No address available";
+        } else {
+            // Handle going off live
+            bus.driver = ""; // Remove the driver
+            bus.stopsCompleted = 0; // Reset stops if necessary
+            bus.status = "Driver not Assigned";
         }
 
-        // Update the bus location with the provided coordinates
-        bus.lat = lat;
-        bus.lon = lon;
-        bus.status = address;
-        bus.stopsCompleted = parseInt(stops);
-        if(active==true)
-        bus.driver = email;
-        else
-        bus.driver = ""
-
         await bus.save();
-
         res.send('Bus location updated successfully.');
     } catch (error) {
         console.error('Error during driver check-in:', error);
         res.status(500).send('Failed to check in.');
     }
 });
+
 
 
 // Registration endpoint
