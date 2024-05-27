@@ -20,14 +20,30 @@ mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTop
 app.use(cors());
 app.use(express.json());
 
+// Endpoint to fetch user details by email
+app.get('/api/users/details', async (req, res) => {
+    const { email } = req.query;
+    try {
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).send('User not found');
+        }
+        res.json({ name: user.name, email: user.email, role: user.role });  // Add any other user details you need
+    } catch (error) {
+        console.error('Error fetching user details:', error);
+        res.status(500).send('Server error');
+    }
+});
+
+
 //driver check in
 app.post('/api/driver/check-in', async (req, res) => {
-    const { email, passcode, busName, lat, lon,address } = req.body;
+    const { email, passcode, busName, lat, lon,address,active,stops } = req.body;
 
     try {
         // Verify the driver's passcode and email
         const driver = await User.findOne({ email, passcode, role: "driver" });
-        if (!driver) {
+        if (!driver && active==true) {
             return res.status(401).send('Invalid credentials or not authorized as a driver.');
         }
 
@@ -37,10 +53,20 @@ app.post('/api/driver/check-in', async (req, res) => {
             return res.status(404).send('Bus not found.');
         }
 
+        if(active==true && parseInt(stops)>bus.routes.length){
+            return res.status(404).send('Stops exceeding the route length');
+        }
+
         // Update the bus location with the provided coordinates
         bus.lat = lat;
         bus.lon = lon;
         bus.status = address;
+        bus.stopsCompleted = parseInt(stops);
+        if(active==true)
+        bus.driver = email;
+        else
+        bus.driver = ""
+
         await bus.save();
 
         res.send('Bus location updated successfully.');
@@ -178,7 +204,7 @@ app.get('/api/bus-locations', async (req, res) => {
 
       // Append dummy data to the actual data
       const dummyData = [{ id: 'VB01', lat: 13.038321, lon: 80.213593, name: '24X', route: 'Koyambedu', status: 'Vadapalani',routes:[] }];
-      busLocations = busLocations.concat(dummyData);
+    //   busLocations = busLocations.concat(dummyData);
 
       res.json(busLocations);
   } catch (error) {
@@ -206,13 +232,18 @@ app.post('/api/bus-locations', async (req, res) => {
   }
 });
 
-// PUT endpoint to update a bus location by custom ID
+// PUT endpoint to update a bus location by custom ID including stops completed
 app.put('/api/bus-locations/:id', async (req, res) => {
     const { id } = req.params;
-    const { routes } = req.body;
+    const { routes, stopsCompleted } = req.body; // Include stopsCompleted in the request body
 
     try {
-        const bus = await BusLocation.findOneAndUpdate({ id: id }, { routes }, { new: true });
+        const updates = {
+            routes,
+            stopsCompleted // Assuming the type conversion/validation is handled appropriately
+        };
+
+        const bus = await BusLocation.findOneAndUpdate({ id: id }, updates, { new: true });
         if (!bus) {
             return res.status(404).send('Bus not found');
         }
@@ -222,6 +253,7 @@ app.put('/api/bus-locations/:id', async (req, res) => {
         res.status(500).send('Failed to update bus');
     }
 });
+
 
 
 
