@@ -41,18 +41,27 @@ app.post('/api/driver/check-in', async (req, res) => {
     const { email, passcode, busName, lat, lon, address, active, stops } = req.body;
 
     try {
-        // Verify the driver's passcode, email, and role only if going live
-        if (active) {
-            const driver = await User.findOne({ email, passcode, role: "driver" });
-            if (!driver) {
-                return res.status(401).send('Invalid credentials or not authorized as a driver.');
-            }
-        }
-
         // Find the bus by name
         const bus = await BusLocation.findOne({ name: busName });
         if (!bus) {
             return res.status(404).send('Bus not found.');
+        }
+
+        if(bus.status!="Driver not Assigned")
+        {
+            return res.status(404).send('Another drivere is driving this bus');
+        }
+
+        // Verify the driver's passcode and role only if going live
+        if (active) {
+            if (passcode !== bus.pass) {
+                return res.status(401).send('Invalid passcode for this bus.');
+            }
+
+            const driver = await User.findOne({ email, role: "driver" });
+            if (!driver) {
+                return res.status(401).send('Email not authorized as a driver.');
+            }
         }
 
         // Handle going live
@@ -80,6 +89,7 @@ app.post('/api/driver/check-in', async (req, res) => {
         res.status(500).send('Failed to check in.');
     }
 });
+
 
 
 
@@ -147,7 +157,7 @@ app.post('/api/login', async (req, res) => {
         }
 
         // If userType matches, proceed with generating the token
-        const token = jwt.sign({ userId: user._id }, process.env.TOKEN_SECRET, { expiresIn: '2h' });
+        const token = jwt.sign({ userId: user._id }, process.env.TOKEN_SECRET, { expiresIn: '10h' });
         res.json({ token });
     } catch (error) {
         console.log(error);
@@ -170,7 +180,7 @@ app.get('/api/profile', async (req, res) => {
         if (!user) return res.status(404).send('User not found.');
 
         const { name, email, passcode } = user;
-        res.json({ name, email, passcode });
+        res.json(user);
     } catch (error) {
         console.log(error);
         res.status(500).send('Internal Server Error');
